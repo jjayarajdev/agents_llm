@@ -1,14 +1,14 @@
 from flask import Blueprint, request, jsonify
 from app.models import Tenant, EmailAgentConfig, DocumentSummarizerConfig, SFDCConfig
 from app import db
-from app.schemas import TenantSetupSchema
-from marshmallow import ValidationError
+from app.schemas import TenantSetup
+from pydantic import ValidationError
 from flask_jwt_extended import jwt_required
 
 admin_bp = Blueprint('admin', __name__)
 
 @admin_bp.route('/setup_tenant', methods=['POST'])
-@jwt_required()  # Secures this endpoint
+@jwt_required()
 def setup_tenant():
     """
     Admin endpoint to set up a new tenant with optional configurations.
@@ -22,13 +22,11 @@ def setup_tenant():
     }
     """
     try:
-        data = request.get_json()
-        schema = TenantSetupSchema()
-        validated_data = schema.load(data)
+        validated_data = TenantSetup.parse_obj(request.get_json())
     except ValidationError as err:
-        return jsonify({"error": err.messages}), 400
+        return jsonify({"error": err.errors()}), 400
 
-    tenant_name = validated_data.get("tenant_name")
+    tenant_name = validated_data.tenant_name
     
     # Check for an existing tenant
     existing_tenant = Tenant.query.filter_by(name=tenant_name).first()
@@ -40,31 +38,28 @@ def setup_tenant():
         db.session.add(tenant)
         db.session.commit()
 
-        if "email_config" in validated_data:
-            email_data = validated_data["email_config"]
+        if validated_data.email_config:
             email_config = EmailAgentConfig(
                 tenant_id=tenant.id,
-                smtp_server=email_data.get("smtp_server"),
-                smtp_port=email_data.get("smtp_port"),
-                smtp_username=email_data.get("smtp_username"),
-                smtp_password=email_data.get("smtp_password")
+                smtp_server=validated_data.email_config.smtp_server,
+                smtp_port=validated_data.email_config.smtp_port,
+                smtp_username=validated_data.email_config.smtp_username,
+                smtp_password=validated_data.email_config.smtp_password
             )
             db.session.add(email_config)
             
-        if "doc_sum_config" in validated_data:
-            doc_data = validated_data["doc_sum_config"]
+        if validated_data.doc_sum_config:
             doc_config = DocumentSummarizerConfig(
                 tenant_id=tenant.id,
-                summarizer_setting=doc_data.get("summarizer_setting")
+                summarizer_setting=validated_data.doc_sum_config.summarizer_setting
             )
             db.session.add(doc_config)
             
-        if "sfdc_config" in validated_data:
-            sfdc_data = validated_data["sfdc_config"]
+        if validated_data.sfdc_config:
             sfdc_config = SFDCConfig(
                 tenant_id=tenant.id,
-                sfdc_instance_url=sfdc_data.get("sfdc_instance_url"),
-                sfdc_access_token=sfdc_data.get("sfdc_access_token")
+                sfdc_instance_url=validated_data.sfdc_config.sfdc_instance_url,
+                sfdc_access_token=validated_data.sfdc_config.sfdc_access_token
             )
             db.session.add(sfdc_config)
             
