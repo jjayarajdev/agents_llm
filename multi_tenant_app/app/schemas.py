@@ -1,20 +1,59 @@
-from marshmallow import Schema, fields, validate
+from pydantic import BaseModel, Field, constr
+from typing import List, Optional, Literal, Dict, Any
 
-class EmailConfigSchema(Schema):
-    smtp_server = fields.Str(required=True)
-    smtp_port = fields.Int(required=True)
-    smtp_username = fields.Str(required=True)
-    smtp_password = fields.Str(required=True)
+# Schemas for tenant setup
 
-class DocSumConfigSchema(Schema):
-    summarizer_setting = fields.Str(required=True)
+class EmailConfig(BaseModel):
+    smtp_server: str
+    smtp_port: int
+    smtp_username: str
+    smtp_password: str
 
-class SFDCConfigSchema(Schema):
-    sfdc_instance_url = fields.Str(required=True)
-    sfdc_access_token = fields.Str(required=True)
+class DocSumConfig(BaseModel):
+    summarizer_setting: str
 
-class TenantSetupSchema(Schema):
-    tenant_name = fields.Str(required=True, validate=validate.Length(min=1))
-    email_config = fields.Nested(EmailConfigSchema, required=False)
-    doc_sum_config = fields.Nested(DocSumConfigSchema, required=False)
-    sfdc_config = fields.Nested(SFDCConfigSchema, required=False)
+class SFDCConfig(BaseModel):
+    sfdc_instance_url: str
+    sfdc_access_token: str
+
+class TenantSetup(BaseModel):
+    tenant_name: constr(min_length=1)
+    email_config: Optional[EmailConfig] = None
+    doc_sum_config: Optional[DocSumConfig] = None
+    sfdc_config: Optional[SFDCConfig] = None
+
+# Schemas for agent chain configuration
+
+class AgentChainStep(BaseModel):
+    step_order: int
+    agent_name: Literal['doc_sum', 'sfdc', 'email']
+    condition: Optional[str] = None  # Optional condition as a string expression
+
+class AgentChain(BaseModel):
+    tenant_id: int
+    name: str
+    steps: List[AgentChainStep]
+
+# Agent input/output schemas
+
+class DocumentSummarizerInput(BaseModel):
+    document_text: str
+
+class DocumentSummarizerOutput(BaseModel):
+    summary: str
+
+class EmailAgentInput(BaseModel):
+    recipient: str
+    subject: str
+    body: str
+
+class EmailAgentOutput(BaseModel):
+    status: str
+    message: str
+
+class SFDCInput(BaseModel):
+    lead_data: Dict[str, Any]
+
+class SFDCOutput(BaseModel):
+    status: str
+    message: str
