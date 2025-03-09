@@ -6,7 +6,7 @@ from app import celery, db
 from app.models import EmailAgentConfig, SFDCConfig
 from flask import current_app
 
-# Ensure OpenAI API key is set in the app context
+# Set the OpenAI API key from the app configuration
 openai.api_key = current_app.config.get('OPENAI_API_KEY')
 
 @celery.task(bind=True, max_retries=3, default_retry_delay=10)
