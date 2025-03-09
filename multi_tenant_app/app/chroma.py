@@ -14,7 +14,6 @@ collection = client.get_or_create_collection("documents")
 def get_embedding(text: str) -> list:
     """
     Uses OpenAI's embeddings API to generate a vector representation.
-    Ensure that OPENAI_API_KEY is set in your environment/config.
     """
     response = openai.Embedding.create(
         input=text,
