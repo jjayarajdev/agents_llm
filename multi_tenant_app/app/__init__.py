@@ -37,11 +37,12 @@ def create_app(config_class=Config):
     CORS(app)
 
     with app.app_context():
-        from app import models, routes, admin, auth
+        from app import models, routes, admin, auth, chain
         db.create_all()
         app.register_blueprint(routes.bp, url_prefix="/api/v1")
         app.register_blueprint(admin.admin_bp, url_prefix="/api/v1/admin")
         app.register_blueprint(auth.auth_bp, url_prefix="/api/v1/auth")
+        app.register_blueprint(chain.chain_bp, url_prefix="/api/v1/chain")
     
     return app
 
